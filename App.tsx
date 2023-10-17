@@ -10,6 +10,7 @@ import {
    LayoutRectangle,
    StyleProp,
    StyleSheet,
+   Switch,
    Text,
    TouchableOpacity,
    View,
@@ -26,15 +27,24 @@ const TabBar = ({
    onTabPress,
    onLayout,
    children,
+   withBlurryBG,
 }: {
    tabs: string[];
    onTabPress: (value: number) => void;
+   withBlurryBG?: boolean;
    onLayout?: (event: LayoutChangeEvent) => void;
    children?: React.ReactElement;
 }) => {
    return (
-      <View onLayout={onLayout} style={[styles.tabBarCommon, styles.tabBar]}>
-         <BlurView intensity={100} style={styles.absolute} />
+      <View
+         onLayout={onLayout}
+         style={[
+            styles.tabBarCommon,
+            styles.tabBar,
+            { backgroundColor: !withBlurryBG ? 'gold' : undefined },
+         ]}
+      >
+         {withBlurryBG && <BlurView intensity={100} style={styles.absolute} />}
          {tabs.map((label, index) => {
             return (
                <TouchableOpacity
@@ -63,16 +73,16 @@ const Magnifier = ({
    offsetX,
    tabWidth,
    barWidth,
+   withBlurryBG,
 }: {
    tabs: string[];
    zoomLevel: number;
    offsetX: SharedValue<number>;
    barWidth: number;
    tabWidth: number;
+   withBlurryBG?: boolean;
 }) => {
    const [tabWidths, setTabWidths] = useState<number[]>([]);
-
-   console.log('qwe');
 
    const allWidthMeasured = useMemo(
       () => tabWidths.length > 0 && tabWidths.length === tabs.length,
@@ -137,9 +147,12 @@ const Magnifier = ({
                   transform: [{ scale: zoomLevel }],
                },
                indicatorPosX,
+               { backgroundColor: !withBlurryBG ? 'gold' : undefined },
             ]}
          >
-            <BlurView intensity={100} style={innerBlurStyle} />
+            {withBlurryBG && (
+               <BlurView intensity={100} style={innerBlurStyle} />
+            )}
             <Animated.View
                style={[
                   styles.magnifierBar,
@@ -169,6 +182,8 @@ const App = () => {
    const offsetX = useSharedValue(0);
 
    const [zoomLevel, setZoomLevel] = useState(1.4);
+   const [withBlurryBG, setWithBlurryBG] = useState(true);
+
    const [dims, setDims] = useState<LayoutRectangle>({
       width: 0,
       height: 0,
@@ -191,34 +206,116 @@ const App = () => {
    };
 
    return (
-      <ImageBackground
-         source={require('./assets/bg.png')}
-         style={styles.container}
-      >
-         <TabBar tabs={tabs} onTabPress={onTabPress} onLayout={onLayout}>
-            <Magnifier
-               tabs={tabs}
-               zoomLevel={zoomLevel}
-               offsetX={offsetX}
-               tabWidth={tabWidth}
-               barWidth={dims.width}
-            />
-         </TabBar>
-      </ImageBackground>
+      <>
+         <ImageBackground
+            source={require('./assets/bg.png')}
+            style={styles.container}
+            resizeMode='contain'
+         >
+            <View style={styles.tabBarWrapper}>
+               <TabBar
+                  tabs={tabs}
+                  onTabPress={onTabPress}
+                  onLayout={onLayout}
+                  withBlurryBG={withBlurryBG}
+               >
+                  <Magnifier
+                     tabs={tabs}
+                     zoomLevel={zoomLevel}
+                     offsetX={offsetX}
+                     tabWidth={tabWidth}
+                     barWidth={dims.width}
+                     withBlurryBG={withBlurryBG}
+                  />
+               </TabBar>
+            </View>
+         </ImageBackground>
+         <View
+            style={{
+               position: 'absolute',
+               width: '100%',
+               alignItems: 'center',
+               justifyContent: 'center',
+               bottom: 0,
+            }}
+         >
+            <View
+               style={{
+                  backgroundColor: '#D6DDE0',
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  paddingHorizontal: 20,
+               }}
+            >
+               <View
+                  style={{
+                     flexDirection: 'row',
+                     alignItems: 'center',
+                  }}
+               >
+                  <TouchableOpacity
+                     onPress={() =>
+                        zoomLevel > 1 && setZoomLevel((s) => s - 0.1)
+                     }
+                     style={{
+                        flex: 1,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                     }}
+                  >
+                     <Text style={{ fontSize: 60 }}>-</Text>
+                  </TouchableOpacity>
+                  <Text style={{ fontSize: 16, flex: 1, textAlign: 'center' }}>
+                     Zoom: {zoomLevel.toFixed(2)}x
+                  </Text>
+                  <TouchableOpacity
+                     onPress={() =>
+                        zoomLevel < 2 && setZoomLevel((s) => s + 0.1)
+                     }
+                     style={{
+                        flex: 1,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                     }}
+                  >
+                     <Text style={{ fontSize: 40 }}>+</Text>
+                  </TouchableOpacity>
+               </View>
+            </View>
+
+            <View
+               style={{
+                  marginVertical: 30,
+                  backgroundColor: '#D6DDE0',
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  paddingHorizontal: 20,
+               }}
+            >
+               <Text style={{ fontSize: 16, flex: 1 }}>Blurry background</Text>
+               <Switch onValueChange={setWithBlurryBG} value={withBlurryBG} />
+            </View>
+         </View>
+      </>
    );
 };
 
 const styles = StyleSheet.create({
    container: {
       flex: 1,
-      justifyContent: 'center',
-      paddingHorizontal: 20,
       backgroundColor: '#f5f6fa',
    },
+   tabBarWrapper: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+   },
    tabBar: {
+      marginHorizontal: 20,
       height: 64,
       paddingHorizontal: BAR_X_PADDING,
-      // backgroundColor: 'gold',
       shadowColor: '#000',
       shadowOffset: {
          width: 0,
