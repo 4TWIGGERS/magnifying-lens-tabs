@@ -9,7 +9,6 @@
       "web": "expo start --web"
    },
    "dependencies": {
-      "@react-native-masked-view/masked-view": "0.2.9",
       "expo": "~49.0.13",
       "expo-blur": "~12.4.1",
       "expo-status-bar": "~1.6.0",
