@@ -89,12 +89,6 @@ const Magnifier = ({
       [tabs, tabWidths]
    );
 
-   const onLayout = (event: NativeSyntheticEvent<TextLayoutEventData>) => {
-      const w = event.nativeEvent.lines[0].width;
-      // hack for ios, for some unknown reason initial width of text is 0.666...
-      w > 1 && setTabWidths((s) => [...s, w + 16]);
-   };
-
    const indicatorPosX = useAnimatedStyle(() => {
       return {
          left: allWidthMeasured
@@ -160,7 +154,13 @@ const Magnifier = ({
                            numberOfLines={1}
                            ellipsizeMode='tail'
                            style={styles.tabText}
-                           onTextLayout={onLayout}
+                           onTextLayout={(event) => {
+                              const { text, width } =
+                                 event.nativeEvent.lines[0];
+                              tabWidths.length !== tabs.length &&
+                                 text === label &&
+                                 setTabWidths((s) => [...s, width + 16]);
+                           }}
                         >
                            {label}
                         </Text>
@@ -323,7 +323,7 @@ const styles = StyleSheet.create({
       elevation: 5,
    },
    tabBarCommon: {
-      overflow: 'hidden',
+      // overflow: 'hidden',
       flexDirection: 'row',
       alignItems: 'center',
       borderRadius: 50,
