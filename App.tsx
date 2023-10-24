@@ -183,6 +183,7 @@ const Magnifier = ({
                                  event.nativeEvent.lines[0];
                               tabWidths.length !== tabs.length &&
                                  text === label &&
+                                 width > 1 &&
                                  setTabWidths((s) => [...s, width + 16]);
                            }}
                         >
