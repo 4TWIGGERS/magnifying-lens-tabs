@@ -1,5 +1,6 @@
 # Here's the result
 
-<video width="320" height="240" controls>
-  <source src="./assets/example.mp4" type="video/mp4">
-</video>
+
+
+https://github.com/4TWIGGERS/magnifying-lens-tabs/assets/94455967/9d0ca01b-6ce6-48f6-84be-83776311ee03
+
