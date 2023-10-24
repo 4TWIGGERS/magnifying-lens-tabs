@@ -4,13 +4,14 @@ import {
    ImageBackground,
    LayoutChangeEvent,
    LayoutRectangle,
-   NativeSyntheticEvent,
+   Platform,
+   StyleProp,
    StyleSheet,
    Switch,
    Text,
-   TextLayoutEventData,
    TouchableOpacity,
    View,
+   ViewStyle,
 } from 'react-native';
 import Animated, {
    SharedValue,
@@ -21,6 +22,8 @@ import Animated, {
 
 const BAR_X_PADDING = 12;
 const TRANSITION_DURATION_MS = 600;
+
+const IS_IOS = Platform.OS === 'ios';
 
 const TabBar = ({
    tabs,
@@ -41,6 +44,7 @@ const TabBar = ({
          style={[
             styles.tabBarCommon,
             styles.tabBar,
+            styles.shadow,
             { backgroundColor: !withBlurryBG ? 'gold' : undefined },
          ]}
       >
@@ -89,6 +93,21 @@ const Magnifier = ({
       [tabs, tabWidths]
    );
 
+   const innerBlurStyle = useMemo(() => {
+      if (IS_IOS) {
+         return styles.magnifierBlur;
+      }
+      const offset = `${-(100 - 100 / zoomLevel)}%`;
+      return {
+         position: 'absolute',
+         top: offset,
+         left: offset,
+         right: offset,
+         bottom: offset,
+         transform: [{ scale: 1 / zoomLevel }],
+      } as StyleProp<ViewStyle>;
+   }, [zoomLevel]);
+
    const indicatorPosX = useAnimatedStyle(() => {
       return {
          left: allWidthMeasured
@@ -129,6 +148,7 @@ const Magnifier = ({
             <Animated.View
                style={[
                   styles.indicator,
+                  styles.shadow,
                   {
                      transform: [{ scale: zoomLevel }],
                   },
@@ -137,10 +157,14 @@ const Magnifier = ({
                ]}
             >
                {withBlurryBG && (
-                  <BlurView intensity={100} style={styles.magnifierBlur} />
+                  <BlurView intensity={100} style={innerBlurStyle} />
                )}
-               <View style={styles.glassEffect} />
-               <BlurView intensity={5} style={styles.magnifierBlur} />
+               {IS_IOS && (
+                  <>
+                     <View style={styles.glassEffect} />
+                     <BlurView intensity={5} style={styles.magnifierBlur} />
+                  </>
+               )}
                <Animated.View
                   style={[
                      styles.magnifierBar,
@@ -323,7 +347,7 @@ const styles = StyleSheet.create({
       elevation: 5,
    },
    tabBarCommon: {
-      // overflow: 'hidden',
+      overflow: 'hidden',
       flexDirection: 'row',
       alignItems: 'center',
       borderRadius: 50,
@@ -336,7 +360,7 @@ const styles = StyleSheet.create({
    },
    tabText: {
       fontSize: 12,
-      textShadowColor: '#0009',
+      textShadowColor: Platform.select({ ios: '#0009', android: '#0005' }),
       textShadowOffset: { width: 0, height: 1 },
       textShadowRadius: 2,
    },
@@ -351,7 +375,7 @@ const styles = StyleSheet.create({
    },
    magnifiedText: {
       fontSize: 18,
-      textShadowColor: '#0009',
+      textShadowColor: Platform.select({ ios: '#0009', android: '#0005' }),
       textShadowOffset: { width: 0, height: 1 },
       textShadowRadius: 2,
    },
