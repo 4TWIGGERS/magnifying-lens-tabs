@@ -1,26 +1,26 @@
+import { BlurView } from 'expo-blur';
+import { useMemo, useState } from 'react';
+import {
+   ImageBackground,
+   LayoutChangeEvent,
+   LayoutRectangle,
+   NativeSyntheticEvent,
+   StyleSheet,
+   Switch,
+   Text,
+   TextLayoutEventData,
+   TouchableOpacity,
+   View,
+} from 'react-native';
 import Animated, {
    SharedValue,
    useAnimatedStyle,
    useSharedValue,
    withTiming,
 } from 'react-native-reanimated';
-import {
-   ImageBackground,
-   LayoutChangeEvent,
-   LayoutRectangle,
-   StyleProp,
-   StyleSheet,
-   Switch,
-   Text,
-   TouchableOpacity,
-   View,
-   ViewStyle,
-} from 'react-native';
-import { useMemo, useState } from 'react';
-
-import { BlurView } from 'expo-blur';
 
 const BAR_X_PADDING = 12;
+const TRANSITION_DURATION_MS = 600;
 
 const TabBar = ({
    tabs,
@@ -89,22 +89,11 @@ const Magnifier = ({
       [tabs, tabWidths]
    );
 
-   const onLayout = (event: LayoutChangeEvent) => {
-      const w = event.nativeEvent.layout.width;
-      w > 0 && setTabWidths((s) => [...s, w + 16]);
+   const onLayout = (event: NativeSyntheticEvent<TextLayoutEventData>) => {
+      const w = event.nativeEvent.lines[0].width;
+      // hack for ios, for some unknown reason initial width of text is 0.666...
+      w > 1 && setTabWidths((s) => [...s, w + 16]);
    };
-
-   const innerBlurStyle = useMemo(() => {
-      const offset = `${-(100 - 100 / zoomLevel)}%`;
-      return {
-         position: 'absolute',
-         top: offset,
-         left: offset,
-         right: offset,
-         bottom: offset,
-         transform: [{ scale: 1 / zoomLevel }],
-      } as StyleProp<ViewStyle>;
-   }, [zoomLevel]);
 
    const indicatorPosX = useAnimatedStyle(() => {
       return {
@@ -113,12 +102,14 @@ const Magnifier = ({
                  offsetX.value * tabWidth +
                     BAR_X_PADDING +
                     (tabWidth - tabWidths[offsetX.value]) / 2,
-                 { duration: 600 }
+                 { duration: TRANSITION_DURATION_MS }
               )
-            : withTiming(0, { duration: 600 }),
+            : withTiming(0, { duration: TRANSITION_DURATION_MS }),
          width: allWidthMeasured
-            ? withTiming(tabWidths[offsetX.value], { duration: 600 })
-            : withTiming(0, { duration: 600 }),
+            ? withTiming(tabWidths[offsetX.value], {
+                 duration: TRANSITION_DURATION_MS,
+              })
+            : withTiming(0, { duration: TRANSITION_DURATION_MS }),
       };
    });
 
@@ -132,48 +123,52 @@ const Magnifier = ({
                     BAR_X_PADDING +
                     (tabWidth - tabWidth / zoomLevel) / 2
                  ),
-                 { duration: 600 }
+                 { duration: TRANSITION_DURATION_MS }
               )
-            : withTiming(0, { duration: 600 }),
+            : withTiming(0, { duration: TRANSITION_DURATION_MS }),
       };
    });
 
    return (
-      <View style={[styles.tabBarCommon, styles.absolute]} pointerEvents='none'>
-         <Animated.View
-            style={[
-               styles.indicator,
-               {
-                  transform: [{ scale: zoomLevel }],
-               },
-               indicatorPosX,
-               { backgroundColor: !withBlurryBG ? 'gold' : undefined },
-            ]}
-         >
-            {withBlurryBG && (
-               <BlurView intensity={100} style={innerBlurStyle} />
-            )}
+      <View style={[styles.absolute, styles.shadow]} pointerEvents='none'>
+         <View style={[styles.absolute, styles.tabBarCommon]}>
             <Animated.View
                style={[
-                  styles.magnifierBar,
-                  { width: barWidth },
-                  indicatorBackgroundPosX,
+                  styles.indicator,
+                  {
+                     transform: [{ scale: zoomLevel }],
+                  },
+                  indicatorPosX,
+                  { backgroundColor: !withBlurryBG ? 'gold' : undefined },
                ]}
             >
-               {tabs.map((label, index) => (
-                  <View key={index} style={styles.tab}>
-                     <Text
-                        numberOfLines={1}
-                        ellipsizeMode='tail'
-                        style={styles.tabText}
-                        onLayout={onLayout}
-                     >
-                        {label}
-                     </Text>
-                  </View>
-               ))}
+               {withBlurryBG && (
+                  <BlurView intensity={100} style={styles.magnifierBlur} />
+               )}
+               <View style={styles.glassEffect} />
+               <BlurView intensity={5} style={styles.magnifierBlur} />
+               <Animated.View
+                  style={[
+                     styles.magnifierBar,
+                     { width: barWidth },
+                     indicatorBackgroundPosX,
+                  ]}
+               >
+                  {tabs.map((label, index) => (
+                     <View key={index} style={styles.tab}>
+                        <Text
+                           numberOfLines={1}
+                           ellipsizeMode='tail'
+                           style={styles.tabText}
+                           onTextLayout={onLayout}
+                        >
+                           {label}
+                        </Text>
+                     </View>
+                  ))}
+               </Animated.View>
             </Animated.View>
-         </Animated.View>
+         </View>
       </View>
    );
 };
@@ -212,7 +207,7 @@ const App = () => {
             style={styles.container}
             resizeMode='contain'
          >
-            <View style={styles.tabBarWrapper}>
+            <View style={[styles.tabBarWrapper, styles.shadow]}>
                <TabBar
                   tabs={tabs}
                   onTabPress={onTabPress}
@@ -313,9 +308,11 @@ const styles = StyleSheet.create({
       justifyContent: 'center',
    },
    tabBar: {
-      marginHorizontal: 20,
       height: 64,
+      marginHorizontal: 20,
       paddingHorizontal: BAR_X_PADDING,
+   },
+   shadow: {
       shadowColor: '#000',
       shadowOffset: {
          width: 0,
@@ -339,7 +336,7 @@ const styles = StyleSheet.create({
    },
    tabText: {
       fontSize: 12,
-      textShadowColor: '#0005',
+      textShadowColor: '#0009',
       textShadowOffset: { width: 0, height: 1 },
       textShadowRadius: 2,
    },
@@ -354,16 +351,23 @@ const styles = StyleSheet.create({
    },
    magnifiedText: {
       fontSize: 18,
-      textShadowColor: '#0005',
+      textShadowColor: '#0009',
       textShadowOffset: { width: 0, height: 1 },
       textShadowRadius: 2,
    },
+   magnifierBlur: {
+      position: 'absolute',
+      top: -1,
+      left: -1,
+      right: -1,
+      bottom: -1,
+   },
    glassEffect: {
       position: 'absolute',
-      top: 3,
+      top: 2,
       alignSelf: 'center',
       width: '50%',
-      height: 3,
+      height: 2,
       borderRadius: 100,
       backgroundColor: '#fff',
    },
@@ -373,14 +377,6 @@ const styles = StyleSheet.create({
       borderWidth: 1,
       borderRadius: 20,
       borderColor: '#f5f6fa',
-      shadowColor: '#000',
-      shadowOffset: {
-         width: 0,
-         height: 2,
-      },
-      shadowOpacity: 0.25,
-      shadowRadius: 3.84,
-      elevation: 5,
    },
 });
 
